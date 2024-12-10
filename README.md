@@ -63,6 +63,87 @@ This tool is perfect for:
 - Offline-first workflow management
 - Quick setup without infrastructure requirements
 
+## Installation & Running
+
+### Local Development Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/kanban-board.git
+cd kanban-board
+```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start development server:
+```bash
+npm run dev
+```
+
+4. Open [http://localhost:5173](http://localhost:5173) in your browser
+
+### Production Build
+
+1. Create optimized production build:
+```bash
+npm run build
+```
+
+2. Preview production build locally:
+```bash
+npm run preview
+```
+
+### Docker Deployment
+
+#### Quick Start
+
+Use the provided build script:
+```bash
+chmod +x build.sh
+./build.sh
+```
+
+#### Manual Docker Setup
+
+1. Build the Docker image:
+```bash
+docker build -t kanban-board:latest .
+```
+
+2. Run the container:
+```bash
+docker run -d -p 8080:80 --name kanban-board kanban-board:latest
+```
+
+3. Access the application at [http://localhost:8080](http://localhost:8080)
+
+#### Docker Management
+
+Stop the container:
+```bash
+docker stop kanban-board
+```
+
+Remove the container:
+```bash
+docker rm kanban-board
+```
+
+Remove the image:
+```bash
+docker rmi kanban-board:latest
+```
+
+### Environment Requirements
+
+- Node.js (v14 or higher)
+- npm (v6 or higher)
+- Docker (optional, for containerized deployment)
+
 ## Usage Guide
 
 ### Board Management
