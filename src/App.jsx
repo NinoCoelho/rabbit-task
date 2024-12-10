@@ -92,9 +92,6 @@ const ColumnsContainer = styled.div`
   flex: 1;
   overflow-x: auto;
   align-items: flex-start;
-  transform-origin: top left;
-  transform: scale(${props => props.zoom});
-  width: ${props => `${100 / props.zoom}%`};
   height: 100%;
 
   /* Hide scrollbar for Chrome, Safari and Opera */
@@ -114,6 +111,12 @@ const ColumnsContainer = styled.div`
   &::-webkit-scrollbar-thumb:hover {
     background: #ccc;
   }
+`;
+
+const ColumnWrapper = styled.div`
+  flex-shrink: 0;
+  width: ${props => 220 * props.zoom}px;
+  font-size: ${props => 13 * props.zoom}px;
 `;
 
 const FileInput = styled.input`
@@ -359,6 +362,7 @@ function App() {
       id: taskId,
       title: taskData.title || 'New Task',
       description: taskData.description || '',
+      dueDate: taskData.dueDate || null,
       columnId: columnId
     };
 
@@ -503,7 +507,6 @@ function App() {
                 <ColumnsContainer
                   {...provided.droppableProps}
                   ref={provided.innerRef}
-                  zoom={currentBoard.zoom || 1}
                 >
                   {currentBoard.columnOrder.map((columnId, index) => {
                     const column = currentBoard.columns[columnId];
@@ -518,12 +521,13 @@ function App() {
                         index={index}
                       >
                         {(provided, snapshot) => (
-                          <div
+                          <ColumnWrapper
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             style={{
                               ...provided.draggableProps.style,
                             }}
+                            zoom={currentBoard.zoom || 1}
                           >
                             <Column
                               column={column}
@@ -537,7 +541,7 @@ function App() {
                               currentBoard={currentBoard}
                               updateCurrentBoard={updateCurrentBoard}
                             />
-                          </div>
+                          </ColumnWrapper>
                         )}
                       </Draggable>
                     );

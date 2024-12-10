@@ -27,7 +27,7 @@ const TitleBar = styled.div`
   background: #fff59d;
   border-bottom: 1px solid rgba(0,0,0,0.1);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 1em;
   color: #2c3e50;
   display: flex;
   align-items: center;
@@ -47,7 +47,7 @@ const TaskTitle = styled.span`
 
 const Content = styled.div`
   padding: 8px;
-  font-size: 13px;
+  font-size: 0.9em;
   color: #666;
   line-height: 1.4;
   white-space: pre-wrap;
@@ -70,7 +70,7 @@ const DueDate = styled.div`
   position: absolute;
   bottom: 6px;
   right: 8px;
-  font-size: 10px;
+  font-size: 0.8em;
   color: #666;
   display: flex;
   align-items: center;

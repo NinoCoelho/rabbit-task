@@ -7,12 +7,11 @@ const Container = styled.div`
   margin: 8px;
   border: 1px solid lightgrey;
   border-radius: 2px;
-  min-width: 200px;
-  max-width: 280px;
   height: fit-content;
   background: white;
   display: flex;
   flex-direction: column;
+  width: 100%;
 `;
 
 const TitleContainer = styled.div`
@@ -26,10 +25,11 @@ const TitleContainer = styled.div`
 const Title = styled.div`
   font-weight: bold;
   flex-grow: 1;
+  font-size: 1.1em;
 `;
 
 const TitleInput = styled.input`
-  font-size: inherit;
+  font-size: 1.1em;
   font-weight: bold;
   border: 1px solid #ddd;
   border-radius: 3px;
@@ -44,7 +44,7 @@ const DeleteButton = styled.button`
   color: #999;
   cursor: pointer;
   padding: 4px 8px;
-  font-size: 16px;
+  font-size: 1.2em;
   
   &:hover {
     color: #666;
@@ -73,6 +73,7 @@ const AddTaskButton = styled.button`
   color: #666;
   cursor: pointer;
   margin-top: 6px;
+  font-size: 0.9em;
   
   &:hover {
     background: #f8f9fa;
@@ -94,7 +95,7 @@ const NewTaskInput = styled.input`
   background: #fff59d;
   border-bottom: 1px solid rgba(0,0,0,0.1);
   font-weight: 600;
-  font-size: 14px;
+  font-size: 1.1em;
   color: #2c3e50;
 
   &:focus {
@@ -108,11 +109,26 @@ const NewTaskTextarea = styled.textarea`
   width: 100%;
   padding: 8px 12px;
   border: none;
-  font-size: 13px;
+  font-size: 0.9em;
   min-height: 60px;
   resize: none;
   background: #fff9c4;
   color: #666;
+
+  &:focus {
+    outline: none;
+    background: #fffde7;
+  }
+`;
+
+const NewTaskDueDate = styled.input.attrs({ type: 'datetime-local' })`
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: #fff9c4;
+  color: #666;
+  font-size: 0.9em;
+  border-top: 1px solid rgba(0,0,0,0.05);
 
   &:focus {
     outline: none;
@@ -137,6 +153,7 @@ function Column({
   const [isAddingTask, setIsAddingTask] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskDescription, setNewTaskDescription] = useState('');
+  const [newTaskDueDate, setNewTaskDueDate] = useState('');
   const inputRef = useRef(null);
   const newTaskInputRef = useRef(null);
 
@@ -183,6 +200,7 @@ function Column({
     setIsAddingTask(true);
     setNewTaskTitle('');
     setNewTaskDescription('');
+    setNewTaskDueDate('');
   };
 
   const handleNewTaskSubmit = (e) => {
@@ -190,10 +208,12 @@ function Column({
     if (newTaskTitle.trim()) {
       onAddTask({
         title: newTaskTitle.trim(),
-        description: newTaskDescription.trim()
+        description: newTaskDescription.trim(),
+        dueDate: newTaskDueDate || null
       });
       setNewTaskTitle('');
       setNewTaskDescription('');
+      setNewTaskDueDate('');
       setIsAddingTask(false);
     }
   };
@@ -212,6 +232,7 @@ function Column({
     setIsAddingTask(false);
     setNewTaskTitle('');
     setNewTaskDescription('');
+    setNewTaskDueDate('');
   };
 
   const handleDragOver = (e) => {
@@ -356,6 +377,12 @@ function Column({
                   handleNewTaskSubmit(e);
                 }
               }}
+            />
+            <NewTaskDueDate
+              value={newTaskDueDate}
+              onChange={(e) => setNewTaskDueDate(e.target.value)}
+              min={new Date().toISOString().slice(0, 16)}
+              placeholder="Set due date (optional)"
             />
           </NewTaskForm>
         ) : (
