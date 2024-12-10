@@ -1,3 +1,67 @@
+# Kanban Board
+
+A powerful, privacy-focused Kanban board application built with React. This application helps teams organize and track their work with a visual, card-based interface while maintaining complete data privacy by storing all information locally in the browser.
+
+## Privacy & Security
+
+- **100% Local Storage**: All data is stored exclusively in your browser's local storage
+- **No Server Communication**: The application runs entirely in your browser with no external data transmission
+- **Offline Capable**: Works without internet connection
+- **Data Control**: Export and import boards as JSON files for backup and sharing
+- **Privacy Compliant**: Suitable for projects with high security constraints as no data leaves your device
+
+## Key Features
+
+### Board Management
+
+- Multiple boards for different projects or teams
+- Real-time updates with automatic saving to browser storage
+- Board export/import functionality for backup and sharing
+- Board renaming and deletion capabilities
+
+### Task Organization
+
+- Drag-and-drop interface for intuitive task management
+- Create, edit, and delete tasks with rich descriptions
+- Set and track due dates with visual status indicators
+- Mark tasks as complete with visual feedback
+- Reorder tasks within and between columns
+
+### Team Collaboration
+
+- Add team members with auto-generated avatars
+- Drag-and-drop team member assignment to tasks
+- Multiple assignees per task
+- Quick member removal from tasks
+
+### Visual Management
+
+- Customizable columns for workflow stages
+- Column reordering via drag and drop
+- Zoom control for better board overview
+- Visual indicators for task status and deadlines
+
+### Data Management
+
+- Automatic saving to browser's localStorage
+- JSON export for backup and sharing
+- JSON import for board restoration
+- No account required, instant setup
+
+### Privacy Features
+
+- No server-side storage
+- No tracking or analytics
+- Complete data ownership
+- Suitable for sensitive projects
+
+This tool is perfect for:
+
+- Teams working on sensitive projects
+- Organizations with strict data privacy requirements
+- Individual project management
+- Offline-first workflow management
+- Quick setup without infrastructure requirements
 
 ## Usage Guide
 
@@ -74,7 +138,7 @@ Supports all modern browsers:
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+2. Create your feature branch (`git checkout -b /NinoCoelho/rabbit-task`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
