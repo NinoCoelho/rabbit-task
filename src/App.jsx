@@ -13,6 +13,7 @@ import TeamMember from './components/TeamMember';
 import AddMemberDialog from './components/AddMemberDialog';
 import AppIcon from './components/AppIcon';
 import { encodeBoard, getBoardFromUrl } from './utils/urlUtils';
+import AboutBox from './components/AboutBox';
 
 const Container = styled.div`
   height: 100vh;
@@ -146,6 +147,7 @@ const RightPanel = styled.div.attrs({ className: 'team-panel' })`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
 `;
 
 const TeamPanelHeader = styled.div`
@@ -164,6 +166,9 @@ const TeamPanelHeader = styled.div`
 const TeamList = styled.div`
   padding: 4px;
   overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 `;
 
 const TeamMemberItem = styled.div`
@@ -1045,6 +1050,8 @@ function App() {
                   <AddMemberButton onClick={() => setIsAddMemberDialogOpen(true)}>
                     <span>+</span> Add Member
                   </AddMemberButton>
+                  
+                  <AboutBox />
                 </TeamList>
               )}
             </RightPanel>
