@@ -267,18 +267,60 @@ const ShareButton = styled(ActionButton)`
   }
 `;
 
+const CloseButton = styled.button`
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  color: #dc3545;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+
+  &:hover {
+    color: #c82333;
+  }
+`;
+
+const DialogTitle = styled.h3`
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: #333;
+  padding-right: 32px;
+`;
+
+const DialogText = styled.p`
+  margin: 8px 0;
+  color: #666;
+  font-size: 14px;
+`;
+
 const ImportDialog = styled.div`
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   background: white;
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   z-index: 1000;
   max-width: 400px;
   width: 90%;
+`;
+
+const ImportButton = styled(ActionButton)`
+  padding: 6px 12px;
+  font-size: 13px;
 `;
 
 const DialogOverlay = styled.div`
@@ -300,6 +342,12 @@ const ButtonGroup = styled.div`
   margin-top: 16px;
   justify-content: flex-end;
 `;
+
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+  </svg>
+);
 
 const createEmptyBoard = (id, title) => ({
   id,
@@ -1016,19 +1064,19 @@ function App() {
         {importDialogData && (
           <DialogOverlay>
             <ImportDialog>
-              <h3>Import Board</h3>
-              <p>A board named "{importDialogData.title}" already exists.</p>
-              <p>Would you like to:</p>
+              <CloseButton onClick={() => setImportDialogData(null)} title="Cancel">
+                <CloseIcon />
+              </CloseButton>
+              <DialogTitle>Import Board</DialogTitle>
+              <DialogText>A board named "{importDialogData.title}" already exists.</DialogText>
+              <DialogText>Would you like to:</DialogText>
               <ButtonGroup>
-                <ActionButton onClick={() => handleImportBoard(importDialogData, true)}>
+                <ImportButton onClick={() => handleImportBoard(importDialogData, true)}>
                   Create New Version
-                </ActionButton>
-                <ActionButton onClick={() => handleImportBoard(importDialogData, false)}>
+                </ImportButton>
+                <ImportButton onClick={() => handleImportBoard(importDialogData, false)}>
                   Override Existing
-                </ActionButton>
-                <ActionButton onClick={() => setImportDialogData(null)}>
-                  Cancel
-                </ActionButton>
+                </ImportButton>
               </ButtonGroup>
             </ImportDialog>
           </DialogOverlay>
