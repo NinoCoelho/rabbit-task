@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import TeamMember from './components/TeamMember';
 import AddMemberDialog from './components/AddMemberDialog';
 import AppIcon from './components/AppIcon';
+import { encodeBoard, getBoardFromUrl } from './utils/urlUtils';
 
 const Container = styled.div`
   height: 100vh;
@@ -120,8 +121,8 @@ const ColumnsContainer = styled.div`
 
 const ColumnWrapper = styled.div`
   flex-shrink: 0;
-  width: ${props => 180 * props.zoom}px;
-  font-size: ${props => 11 * props.zoom}px;
+  width: ${props => 180 * props.$zoom}px;
+  font-size: ${props => 11 * props.$zoom}px;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -235,6 +236,12 @@ const PdfIcon = () => (
   </svg>
 );
 
+const ShareIcon = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/>
+  </svg>
+);
+
 const TopBarIcon = styled.div`
   height: 28px;  // Match the typical height of dropdown/buttons
   width: 28px;
@@ -247,6 +254,51 @@ const TopBarIcon = styled.div`
     height: 100%;
     width: 100%;
   }
+`;
+
+const ShareButton = styled(ActionButton)`
+  background: #0052cc;
+  color: white;
+  border-color: #0052cc;
+
+  &:hover {
+    background: #0047b3;
+    border-color: #0047b3;
+  }
+`;
+
+const ImportDialog = styled.div`
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+  max-width: 400px;
+  width: 90%;
+`;
+
+const DialogOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  justify-content: flex-end;
 `;
 
 const createEmptyBoard = (id, title) => ({
@@ -749,6 +801,61 @@ function App() {
 
   const [isTeamPanelExpanded, setIsTeamPanelExpanded] = useState(true);
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+  const [importDialogData, setImportDialogData] = useState(null);
+
+  const handleShare = () => {
+    const currentUrl = window.location.origin;
+    const encodedBoard = encodeBoard(currentBoard);
+    const shareUrl = `${currentUrl}?board=${encodedBoard}`;
+    
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      alert('Share link copied to clipboard!');
+    }).catch(err => {
+      console.error('Failed to copy:', err);
+      alert('Failed to copy share link');
+    });
+  };
+
+  const handleImportBoard = (board, createNew = false) => {
+    const existingBoard = state.boards.find(b => b.title === board.title);
+    
+    if (existingBoard && !createNew) {
+      // Override existing board
+      const updatedBoards = state.boards.map(b => 
+        b.id === existingBoard.id ? { ...board, id: existingBoard.id } : b
+      );
+      setState({ ...state, boards: updatedBoards, currentBoardId: existingBoard.id });
+    } else {
+      // Create new board with modified title if needed
+      let newTitle = board.title;
+      if (existingBoard) {
+        const now = new Date().toISOString().replace(/[:.]/g, '-');
+        newTitle = `${board.title} (Imported ${now})`;
+      }
+      const newBoard = { ...board, id: Date.now().toString(), title: newTitle };
+      setState({
+        ...state,
+        boards: [...state.boards, newBoard],
+        currentBoardId: newBoard.id
+      });
+    }
+    setImportDialogData(null);
+  };
+
+  useEffect(() => {
+    const boardFromUrl = getBoardFromUrl();
+    if (boardFromUrl) {
+      // Clear the URL parameter
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      const existingBoard = state.boards.find(b => b.title === boardFromUrl.title);
+      if (existingBoard) {
+        setImportDialogData(boardFromUrl);
+      } else {
+        handleImportBoard(boardFromUrl);
+      }
+    }
+  }, []);
 
   return (
     <DragDropContext onDragEnd={onDragEnd}>
@@ -779,6 +886,12 @@ function App() {
                 title="Export as PDF"
               >
                 <PdfIcon />
+              </ExportIconButton>
+              <ExportIconButton 
+                onClick={handleShare}
+                title="Share Board"
+              >
+                <ShareIcon />
               </ExportIconButton>
             </CommandBarLeft>
             <CommandBarRight>
@@ -824,7 +937,7 @@ function App() {
                               style={{
                                 ...provided.draggableProps.style,
                               }}
-                              zoom={currentBoard.zoom || 1}
+                              $zoom={currentBoard.zoom || 1}
                             >
                               <Column
                                 column={column}
@@ -898,6 +1011,27 @@ function App() {
               setIsAddMemberDialogOpen(false);
             }}
           />
+        )}
+
+        {importDialogData && (
+          <DialogOverlay>
+            <ImportDialog>
+              <h3>Import Board</h3>
+              <p>A board named "{importDialogData.title}" already exists.</p>
+              <p>Would you like to:</p>
+              <ButtonGroup>
+                <ActionButton onClick={() => handleImportBoard(importDialogData, true)}>
+                  Create New Version
+                </ActionButton>
+                <ActionButton onClick={() => handleImportBoard(importDialogData, false)}>
+                  Override Existing
+                </ActionButton>
+                <ActionButton onClick={() => setImportDialogData(null)}>
+                  Cancel
+                </ActionButton>
+              </ButtonGroup>
+            </ImportDialog>
+          </DialogOverlay>
         )}
       </ErrorBoundary>
     </DragDropContext>
