@@ -11,6 +11,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import TeamMember from './components/TeamMember';
 import AddMemberDialog from './components/AddMemberDialog';
+import AppIcon from './components/AppIcon';
 
 const Container = styled.div`
   height: 100vh;
@@ -198,6 +199,53 @@ const AddMemberButton = styled(ActionButton)`
 
   span {
     font-size: 14px;
+  }
+`;
+
+const IconButton = styled(ActionButton)`
+  padding: 8px;
+  
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: currentColor;
+  }
+`;
+
+const ExportIconButton = styled(IconButton)`
+  background: #0052cc;
+  color: white;
+  border-color: #0052cc;
+
+  &:hover {
+    background: #0047b3;
+    border-color: #0047b3;
+  }
+`;
+
+const JsonIcon = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5 3h2v2H5v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5h2v2H5c-1.1 0-2-.9-2-2v-4c0-1.1-.9-2-2-2v-2c1.1 0 2-.9 2-2V5c0-1.1.9-2 2-2m14 0c1.1 0 2 .9 2 2v4c0 1.1.9 2 2 2v2c-1.1 0-2 .9-2 2v4c0 1.1-.9 2-2 2h-2v-2h2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5h-2V3h2M12 15c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2z"/>
+  </svg>
+);
+
+const PdfIcon = () => (
+  <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2m-9.5 8.5c0 .8-.7 1.5-1.5 1.5H7v2H5.5V9H8c.8 0 1.5.7 1.5 1.5v1m5 2c0 .8-.7 1.5-1.5 1.5h-2.5V9H13c.8 0 1.5.7 1.5 1.5v3m4-3H17v1h1.5V13H17v2h-1.5V9h3v1.5m-6.5 0h1v3h-1v-3m-5 0h1v1H7v-1"/>
+  </svg>
+);
+
+const TopBarIcon = styled.div`
+  height: 28px;  // Match the typical height of dropdown/buttons
+  width: 28px;
+  margin-right: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  svg {
+    height: 100%;
+    width: 100%;
   }
 `;
 
@@ -708,6 +756,9 @@ function App() {
         <Container>
           <CommandBar>
             <CommandBarLeft>
+              <TopBarIcon>
+                <AppIcon />
+              </TopBarIcon>
               <BoardList
                 boards={state.boards}
                 currentBoardId={state.currentBoardId}
@@ -717,12 +768,18 @@ function App() {
                 onImportBoard={importData}
                 onDeleteBoard={deleteBoard}
               />
-              <ExportButton onClick={handleExportBoard}>
-                Export JSON
-              </ExportButton>
-              <ExportButton onClick={handleExportPDF}>
-                Export PDF
-              </ExportButton>
+              <ExportIconButton 
+                onClick={handleExportBoard}
+                title="Export as JSON"
+              >
+                <JsonIcon />
+              </ExportIconButton>
+              <ExportIconButton 
+                onClick={handleExportPDF}
+                title="Export as PDF"
+              >
+                <PdfIcon />
+              </ExportIconButton>
             </CommandBarLeft>
             <CommandBarRight>
               <ZoomControl 
