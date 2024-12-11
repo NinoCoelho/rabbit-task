@@ -41,7 +41,7 @@ const Checkbox = styled.input.attrs({ type: 'checkbox' })`
   cursor: pointer;
 `;
 
-const TaskTitle = styled.span`
+const TaskTitleText = styled.span`
   color: #2c3e50;
 `;
 
@@ -75,7 +75,6 @@ const DueDate = styled.div`
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.8);
   padding: 2px 4px;
   border-radius: 3px;
   z-index: 1;
@@ -83,15 +82,15 @@ const DueDate = styled.div`
 
 const AssigneeList = styled.div`
   display: flex;
-  gap: 4px;
-  padding: 8px;
+  gap: 2px;
+  padding: 4px;
   flex-wrap: wrap;
-  min-height: 24px;
+  min-height: 16px;
 `;
 
 const AssigneeMember = styled.div`
-  width: 32px;
-  height: 32px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: ${props => props.$color};
   color: white;
@@ -99,7 +98,7 @@ const AssigneeMember = styled.div`
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 8px;
   cursor: pointer;
   position: relative;
   
@@ -113,7 +112,7 @@ const AssigneeMember = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 12px;
     opacity: 0;
     transition: opacity 0.2s;
   }
@@ -131,6 +130,46 @@ const DropZone = styled.div`
   border-radius: 4px;
   transition: all 0.2s;
   padding: 4px;
+`;
+
+const TaskMember = styled.div`
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: ${props => props.color || '#ddd'};
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: bold;
+  margin-left: -6px;
+  border: 1px solid white;
+`;
+
+const TaskCard = styled.div`
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 6px;
+  margin-bottom: 6px;
+  background: white;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    background: #f8f9fa;
+  }
+`;
+
+const TaskCardTitle = styled.div`
+  font-weight: 600;
+  margin-bottom: 4px;
+  font-size: 0.95em;
+`;
+
+const TaskDescription = styled.div`
+  color: #666;
+  font-size: 0.85em;
+  margin-bottom: 4px;
 `;
 
 function Task({ 
@@ -296,11 +335,13 @@ function Task({
         onDoubleClick={handleDoubleClick}
       >
         <TitleBar>
-          <TaskTitle>{task.title}</TaskTitle>
+          <TaskTitleText>{task.title}</TaskTitleText>
         </TitleBar>
-        <Content $isDone={task.done} $hasDueDate={!!task.dueDate}>
-          {task.description}
-        </Content>
+        {task.description && (
+          <Content $isDone={task.done} $hasDueDate={!!task.dueDate}>
+            {task.description}
+          </Content>
+        )}
         <AssigneeList>
           {task.assignees?.map((memberId, index) => {
             const member = currentBoard.members.find(m => m.id.toString() === memberId);

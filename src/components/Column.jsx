@@ -52,12 +52,27 @@ const DeleteButton = styled.button`
 `;
 
 const TaskList = styled.div`
-  padding: 6px;
+  padding: 8px;
   flex-grow: 1;
-  min-height: 100px;
   overflow-y: auto;
-  background: ${props => (props.$isDraggingOver ? '#e9ecef' : 'white')};
-  gap: 6px;
+  min-height: 0;
+  
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #ddd;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #ccc;
+  }
 `;
 
 const TaskContainer = styled.div`

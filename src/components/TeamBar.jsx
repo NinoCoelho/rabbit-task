@@ -2,13 +2,26 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import TeamMember from './TeamMember';
 
-const Container = styled.div`
+const TeamBarContainer = styled.div`
+  padding: 6px 12px;
   background: white;
   border-top: 1px solid #e1e4e8;
-  padding: 12px 20px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+`;
+
+const MemberAvatar = styled.div`
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: ${props => props.color || '#ddd'};
+  color: white;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
 `;
 
 const TeamList = styled.div`
@@ -87,7 +100,7 @@ function TeamBar({ members, onAddMember }) {
 
   return (
     <>
-      <Container>
+      <TeamBarContainer>
         <TeamList>
           {members.map((member, index) => (
             <TeamMember
@@ -99,7 +112,7 @@ function TeamBar({ members, onAddMember }) {
           ))}
         </TeamList>
         <AddButton onClick={() => setIsDialogOpen(true)}>+</AddButton>
-      </Container>
+      </TeamBarContainer>
 
       {isDialogOpen && (
         <>

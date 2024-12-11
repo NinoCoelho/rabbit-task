@@ -7,6 +7,10 @@ import BoardList from './components/BoardList';
 import ErrorBoundary from './components/ErrorBoundary';
 import ZoomControl from './components/ZoomControl';
 import TeamBar from './components/TeamBar';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import TeamMember from './components/TeamMember';
+import AddMemberDialog from './components/AddMemberDialog';
 
 const Container = styled.div`
   height: 100vh;
@@ -115,12 +119,86 @@ const ColumnsContainer = styled.div`
 
 const ColumnWrapper = styled.div`
   flex-shrink: 0;
-  width: ${props => 220 * props.zoom}px;
-  font-size: ${props => 13 * props.zoom}px;
+  width: ${props => 180 * props.zoom}px;
+  font-size: ${props => 11 * props.zoom}px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 `;
 
 const FileInput = styled.input`
   display: none;
+`;
+
+const MainContainer = styled.div.attrs({ className: 'main-container' })`
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+`;
+
+const RightPanel = styled.div.attrs({ className: 'team-panel' })`
+  width: ${props => props.$isExpanded ? '180px' : '40px'};
+  background: white;
+  border-left: 1px solid #e1e4e8;
+  transition: width 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+`;
+
+const TeamPanelHeader = styled.div`
+  padding: 8px;
+  border-bottom: 1px solid #e1e4e8;
+  display: flex;
+  align-items: center;
+  justify-content: ${props => props.$isExpanded ? 'space-between' : 'center'};
+  cursor: pointer;
+  
+  &:hover {
+    background: #f8f9fa;
+  }
+`;
+
+const TeamList = styled.div`
+  padding: 4px;
+  overflow-y: auto;
+`;
+
+const TeamMemberItem = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  border-radius: 4px;
+  min-height: 28px;
+  
+  &:hover {
+    background: #f8f9fa;
+  }
+
+  span {
+    flex: 1;
+    font-size: 12px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    word-break: break-word;
+  }
+`;
+
+const AddMemberButton = styled(ActionButton)`
+  margin: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  width: calc(100% - 8px);
+  justify-content: center;
+
+  span {
+    font-size: 14px;
+  }
 `;
 
 const createEmptyBoard = (id, title) => ({
@@ -181,9 +259,20 @@ function App() {
       const dataStr = JSON.stringify(currentBoard, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
+      
+      // Create formatted date string
+      const now = new Date();
+      const dateStr = now.toISOString()
+        .replace(/[:.]/g, '-') // Replace colons and periods with hyphens
+        .replace('T', '_')     // Replace T with underscore
+        .slice(0, -5);         // Remove milliseconds and timezone
+      
+      // Create filename with board title and date
+      const filename = `${currentBoard.title.toLowerCase().replace(/\s+/g, '-')}_${dateStr}.json`;
+      
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${currentBoard.title.toLowerCase().replace(/\s+/g, '-')}.json`;
+      link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -465,6 +554,154 @@ function App() {
     });
   };
 
+  const handleExportPDF = async () => {
+    try {
+      const boardElement = document.querySelector('.columns-container');
+      const teamPanel = document.querySelector('.team-panel');
+      if (!boardElement) return;
+
+      // Save current states
+      const originalScrollLeft = boardElement.scrollLeft;
+      const originalScrollTop = boardElement.scrollTop;
+      const originalStyle = boardElement.style.cssText;
+      const teamPanelOriginalStyle = teamPanel?.style.cssText;
+
+      // Temporarily modify the containers
+      boardElement.style.width = 'auto';
+      boardElement.style.height = 'auto';
+      boardElement.style.position = 'absolute';
+      boardElement.style.overflow = 'visible';
+      boardElement.style.paddingBottom = '20px';
+
+      if (teamPanel) {
+        teamPanel.style.position = 'absolute';
+        teamPanel.style.right = '0';
+        teamPanel.style.height = 'auto';
+      }
+
+      // Get the full dimensions including team panel
+      const width = boardElement.scrollWidth + (teamPanel?.offsetWidth || 0);
+      const height = Math.max(boardElement.scrollHeight, teamPanel?.scrollHeight || 0) + 200;
+
+      // Create canvas from the entire board and team panel
+      const canvas = await html2canvas(document.querySelector('.main-container'), {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        width: width,
+        height: height + 20,
+        windowWidth: width,
+        windowHeight: height + 20,
+        allowTaint: true,
+        onclone: (clonedDoc) => {
+          const clonedBoard = clonedDoc.querySelector('.columns-container');
+          const clonedTeamPanel = clonedDoc.querySelector('.team-panel');
+          
+          if (clonedBoard) {
+            clonedBoard.style.width = `${boardElement.scrollWidth}px`;
+            clonedBoard.style.height = `${height}px`;
+            clonedBoard.style.position = 'relative';
+            clonedBoard.style.transform = 'none';
+            clonedBoard.style.paddingBottom = '220px';
+          }
+          
+          if (clonedTeamPanel) {
+            clonedTeamPanel.style.position = 'absolute';
+            clonedTeamPanel.style.right = '0';
+            clonedTeamPanel.style.height = `${height}px`;
+          }
+        }
+      });
+
+      // Restore original styles
+      boardElement.style.cssText = originalStyle;
+      boardElement.scrollLeft = originalScrollLeft;
+      boardElement.scrollTop = originalScrollTop;
+      if (teamPanel) {
+        teamPanel.style.cssText = teamPanelOriginalStyle;
+      }
+
+      // Create PDF with custom dimensions
+      const pdfWidth = Math.min(297, width * 297 / height);
+      const pdfHeight = height * pdfWidth / width;
+      
+      const pdf = new jsPDF({
+        orientation: pdfWidth > pdfHeight ? 'l' : 'p',
+        unit: 'mm',
+        format: [pdfWidth, pdfHeight]
+      });
+
+      // Add the combined board and team panel image
+      const imgData = canvas.toDataURL('image/png');
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      // Add member summary below the board
+      pdf.setFontSize(10);
+      let yPos = pdfHeight + 10;
+
+      // Add member summaries
+      currentBoard.members.forEach(member => {
+        const tasks = Object.values(currentBoard.tasks)
+          .filter(task => task.assignees?.includes(member.id.toString()))
+          .map(task => ({
+            title: task.title,
+            status: currentBoard.columns[task.columnId]?.title || 'Unknown'
+          }));
+
+        pdf.text(`${member.name} (${member.initials}):`, 10, yPos);
+        yPos += 5;
+        
+        if (tasks.length === 0) {
+          pdf.text('  No tasks assigned', 10, yPos);
+          yPos += 5;
+        } else {
+          tasks.forEach(task => {
+            pdf.text(`  • ${task.title} (${task.status})`, 10, yPos);
+            yPos += 5;
+          });
+        }
+        yPos += 2;
+      });
+
+      // Add unassigned tasks
+      const unassignedTasks = Object.values(currentBoard.tasks)
+        .filter(task => !task.assignees || task.assignees.length === 0)
+        .map(task => ({
+          title: task.title,
+          status: currentBoard.columns[task.columnId]?.title || 'Unknown'
+        }));
+
+      pdf.text('Unassigned Tasks:', 10, yPos);
+      yPos += 5;
+
+      if (unassignedTasks.length === 0) {
+        pdf.text('  No unassigned tasks', 10, yPos);
+      } else {
+        unassignedTasks.forEach(task => {
+          pdf.text(`  • ${task.title} (${task.status})`, 10, yPos);
+          yPos += 5;
+        });
+      }
+
+      // Save with date and time
+      const now = new Date();
+      const dateTime = now.toISOString()
+        .replace(/[:.]/g, '-')
+        .replace('T', '_')
+        .slice(0, -5);
+
+      const filename = `${currentBoard.title.toLowerCase().replace(/\s+/g, '-')}_${dateTime}.pdf`;
+      pdf.save(filename);
+
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export PDF. Please try again.');
+    }
+  };
+
+  const [isTeamPanelExpanded, setIsTeamPanelExpanded] = useState(true);
+  const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <ErrorBoundary>
@@ -480,10 +717,11 @@ function App() {
                 onImportBoard={importData}
                 onDeleteBoard={deleteBoard}
               />
-              <ExportButton 
-                onClick={handleExportBoard}
-              >
-                Export Board
+              <ExportButton onClick={handleExportBoard}>
+                Export JSON
+              </ExportButton>
+              <ExportButton onClick={handleExportPDF}>
+                Export PDF
               </ExportButton>
             </CommandBarLeft>
             <CommandBarRight>
@@ -497,65 +735,113 @@ function App() {
             </CommandBarRight>
           </CommandBar>
           
-          <BoardContainer>
-            <Droppable
-              droppableId="all-columns"
-              direction="horizontal"
-              type="column"
-            >
-              {(provided) => (
-                <ColumnsContainer
-                  {...provided.droppableProps}
-                  ref={provided.innerRef}
-                >
-                  {currentBoard.columnOrder.map((columnId, index) => {
-                    const column = currentBoard.columns[columnId];
-                    const tasks = column.taskIds.map(
-                      (taskId) => currentBoard.tasks[taskId] || { id: taskId, title: 'Missing Task', description: '' }
-                    );
+          <MainContainer>
+            <BoardContainer>
+              <Droppable
+                droppableId="all-columns"
+                direction="horizontal"
+                type="column"
+              >
+                {(provided) => (
+                  <ColumnsContainer
+                    {...provided.droppableProps}
+                    ref={provided.innerRef}
+                    className="columns-container"
+                  >
+                    {currentBoard.columnOrder.map((columnId, index) => {
+                      const column = currentBoard.columns[columnId];
+                      const tasks = column.taskIds.map(
+                        (taskId) => currentBoard.tasks[taskId] || { id: taskId, title: 'Missing Task', description: '' }
+                      );
 
-                    return (
-                      <Draggable
-                        key={column.id}
-                        draggableId={column.id}
-                        index={index}
-                      >
-                        {(provided, snapshot) => (
-                          <ColumnWrapper
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            style={{
-                              ...provided.draggableProps.style,
-                            }}
-                            zoom={currentBoard.zoom || 1}
-                          >
-                            <Column
-                              column={column}
-                              tasks={tasks}
-                              onUpdateTitle={updateColumnTitle}
-                              onDelete={deleteColumn}
-                              onAddTask={addNewTask(column.id)}
-                              onUpdateTask={updateTask}
-                              onDeleteTask={(taskId) => deleteTask(taskId, column.id)}
-                              dragHandleProps={provided.dragHandleProps}
-                              currentBoard={currentBoard}
-                              updateCurrentBoard={updateCurrentBoard}
-                            />
-                          </ColumnWrapper>
-                        )}
-                      </Draggable>
-                    );
-                  })}
-                  {provided.placeholder}
-                </ColumnsContainer>
+                      return (
+                        <Draggable
+                          key={column.id}
+                          draggableId={column.id}
+                          index={index}
+                        >
+                          {(provided, snapshot) => (
+                            <ColumnWrapper
+                              ref={provided.innerRef}
+                              {...provided.draggableProps}
+                              style={{
+                                ...provided.draggableProps.style,
+                              }}
+                              zoom={currentBoard.zoom || 1}
+                            >
+                              <Column
+                                column={column}
+                                tasks={tasks}
+                                onUpdateTitle={updateColumnTitle}
+                                onDelete={deleteColumn}
+                                onAddTask={addNewTask(column.id)}
+                                onUpdateTask={updateTask}
+                                onDeleteTask={(taskId) => deleteTask(taskId, column.id)}
+                                dragHandleProps={provided.dragHandleProps}
+                                currentBoard={currentBoard}
+                                updateCurrentBoard={updateCurrentBoard}
+                              />
+                            </ColumnWrapper>
+                          )}
+                        </Draggable>
+                      );
+                    })}
+                    {provided.placeholder}
+                  </ColumnsContainer>
+                )}
+              </Droppable>
+            </BoardContainer>
+
+            <RightPanel $isExpanded={isTeamPanelExpanded}>
+              <TeamPanelHeader 
+                $isExpanded={isTeamPanelExpanded}
+                onClick={() => setIsTeamPanelExpanded(!isTeamPanelExpanded)}
+              >
+                {isTeamPanelExpanded ? (
+                  <>
+                    <span>Team Members</span>
+                    <span>›</span>
+                  </>
+                ) : (
+                  <span>‹</span>
+                )}
+              </TeamPanelHeader>
+              
+              {isTeamPanelExpanded && (
+                <TeamList>
+                  {currentBoard.members.map(member => (
+                    <TeamMemberItem key={member.id}>
+                      <TeamMember
+                        member={{
+                          ...member,
+                          name: member.name.split(' ').map(part => 
+                            part.length > 10 ? part.substring(0, 10) + '...' : part
+                          ).join(' ')
+                        }}
+                        isTeamBar={true}
+                        size="small"
+                      />
+                      <span>{member.name}</span>
+                    </TeamMemberItem>
+                  ))}
+                  <AddMemberButton onClick={() => setIsAddMemberDialogOpen(true)}>
+                    <span>+</span> Add Member
+                  </AddMemberButton>
+                </TeamList>
               )}
-            </Droppable>
-          </BoardContainer>
-          <TeamBar 
-            members={currentBoard.members} 
-            onAddMember={handleAddMember}
-          />
+            </RightPanel>
+          </MainContainer>
         </Container>
+
+        {isAddMemberDialogOpen && (
+          <AddMemberDialog
+            onClose={() => setIsAddMemberDialogOpen(false)}
+            onAddMember={(name) => {
+              handleAddMember(name);
+              setIsAddMemberDialogOpen(false);
+            }}
+          />
+        )}
       </ErrorBoundary>
     </DragDropContext>
   );
