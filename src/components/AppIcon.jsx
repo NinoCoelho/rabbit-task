@@ -2,7 +2,7 @@ import React from 'react';
 
 const AppIcon = () => (
   <img 
-    src="/appicon.PNG" 
+    src="/favicon.png" 
     alt="Rabbit Task Logo"
     style={{
       width: '100%',
