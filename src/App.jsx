@@ -14,6 +14,9 @@ import AddMemberDialog from './components/AddMemberDialog';
 import AppIcon from './components/AppIcon';
 import { encodeBoard, getBoardFromUrl } from './utils/urlUtils';
 import AboutBox from './components/AboutBox';
+import FlowDiagram from './components/FlowDiagram/FlowDiagram';
+import { FlowIcon } from './components/Icons';
+import StyledLink from './components/NavLink';
 
 const Container = styled.div`
   height: 100vh;
@@ -409,18 +412,37 @@ function App() {
 
   const handleExportBoard = () => {
     try {
-      const dataStr = JSON.stringify(currentBoard, null, 2);
+      // Get all task diagrams for the current board
+      const taskDiagrams = {};
+      currentBoard.columnOrder.forEach(columnId => {
+        const column = currentBoard.columns[columnId];
+        column.taskIds.forEach(taskId => {
+          const task = currentBoard.tasks[taskId];
+          if (task.diagramId) {
+            const savedDiagram = localStorage.getItem(`taskDiagram_${task.id}`);
+            if (savedDiagram) {
+              taskDiagrams[task.id] = JSON.parse(savedDiagram);
+            }
+          }
+        });
+      });
+
+      // Create export data including board and diagrams
+      const exportData = {
+        board: currentBoard,
+        taskDiagrams: taskDiagrams
+      };
+
+      const dataStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
-      // Create formatted date string
       const now = new Date();
       const dateStr = now.toISOString()
-        .replace(/[:.]/g, '-') // Replace colons and periods with hyphens
-        .replace('T', '_')     // Replace T with underscore
-        .slice(0, -5);         // Remove milliseconds and timezone
+        .replace(/[:.]/g, '-')
+        .replace('T', '_')
+        .slice(0, -5);
       
-      // Create filename with board title and date
       const filename = `${currentBoard.title.toLowerCase().replace(/\s+/g, '-')}_${dateStr}.json`;
       
       const link = document.createElement('a');
@@ -857,20 +879,46 @@ function App() {
   const [importDialogData, setImportDialogData] = useState(null);
 
   const handleShare = () => {
-    const currentUrl = window.location.origin;
-    const encodedBoard = encodeBoard(currentBoard);
-    const shareUrl = `${currentUrl}?board=${encodedBoard}`;
-    
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      alert('Share link copied to clipboard!');
-    }).catch(err => {
-      console.error('Failed to copy:', err);
-      alert('Failed to copy share link');
-    });
+    try {
+      // Get task diagrams for the current board
+      const taskDiagrams = {};
+      currentBoard.columnOrder.forEach(columnId => {
+        const column = currentBoard.columns[columnId];
+        column.taskIds.forEach(taskId => {
+          const task = currentBoard.tasks[taskId];
+          if (task.diagramId) {
+            const savedDiagram = localStorage.getItem(`taskDiagram_${task.id}`);
+            if (savedDiagram) {
+              taskDiagrams[task.id] = JSON.parse(savedDiagram);
+            }
+          }
+        });
+      });
+
+      const shareData = {
+        board: currentBoard,
+        taskDiagrams: taskDiagrams
+      };
+
+      const currentUrl = window.location.origin;
+      const encodedData = encodeBoard(shareData);
+      const shareUrl = `${currentUrl}?board=${encodedData}`;
+      
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        alert('Share link copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('Failed to copy share link');
+      });
+    } catch (error) {
+      console.error('Error sharing board:', error);
+      alert('Failed to create share link');
+    }
   };
 
-  const handleImportBoard = (board, createNew = false) => {
-    const existingBoard = state.boards.find(b => b.title === board.title);
+  const handleImportBoard = (data, createNew = false) => {
+    const board = data.board || data;
+    const taskDiagrams = data.taskDiagrams || {};
     
     if (existingBoard && !createNew) {
       // Override existing board
@@ -892,6 +940,12 @@ function App() {
         currentBoardId: newBoard.id
       });
     }
+
+    // Save task diagrams to localStorage
+    Object.entries(taskDiagrams).forEach(([taskId, diagram]) => {
+      localStorage.setItem(`taskDiagram_${taskId}`, JSON.stringify(diagram));
+    });
+
     setImportDialogData(null);
   };
 
@@ -910,6 +964,15 @@ function App() {
     }
   }, []);
 
+  // Get the current path
+  const path = window.location.pathname;
+
+  // Return the appropriate component based on path
+  if (path === '/draw') {
+    return <FlowDiagram />;
+  }
+
+  // Return the kanban board for any other path
   return (
     <DragDropContext onDragEnd={onDragEnd}>
       <ErrorBoundary>

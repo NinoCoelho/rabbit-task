@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import TaskDialog from './TaskDialog';
 import TeamMember from './TeamMember';
 import { MEMBER_COLORS } from '../constants';
+import { FlowIcon } from './Icons';
 
 const Container = styled.div`
   border: 1px solid lightgrey;
@@ -172,6 +173,26 @@ const TaskDescription = styled.div`
   margin-bottom: 4px;
 `;
 
+const DiagramIndicator = styled.div`
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    color: #666;
+  }
+
+  &:hover svg {
+    color: #0052cc;
+  }
+`;
+
 function Task({ 
   task, 
   index, 
@@ -322,6 +343,57 @@ function Task({
     }
   };
 
+  const handleDiagramClick = (e) => {
+    e.stopPropagation();
+    
+    // Create new diagram if none exists
+    if (!task.diagramId) {
+      const diagramId = `diagram-${Date.now()}`;
+      const newDiagram = {
+        id: diagramId,
+        title: 'Task Diagram',
+        shapes: [
+          {
+            id: 'shape-1',
+            type: 'start',
+            x: 100,
+            y: 100,
+            width: 120,
+            height: 60,
+            text: 'Start',
+            connections: []
+          }
+        ],
+        connections: []
+      };
+
+      // Save the new diagram
+      localStorage.setItem(`taskDiagram_${task.id}`, JSON.stringify(newDiagram));
+
+      // Update task with new diagram ID
+      onUpdate(task.id, {
+        ...task,
+        diagramId
+      });
+
+      // Navigate to the diagram
+      window.location.href = `/draw?taskId=${task.id}&diagramId=${diagramId}`;
+    } else {
+      // Open existing diagram
+      window.location.href = `/draw?taskId=${task.id}&diagramId=${task.diagramId}`;
+    }
+  };
+
+  const handleUpdate = (taskId, updates) => {
+    onUpdate(taskId, updates);
+    // If there's a diagramId in the updates, let the update complete before any navigation
+    if (updates.diagramId) {
+      return new Promise(resolve => {
+        setTimeout(resolve, 0);
+      });
+    }
+  };
+
   return (
     <>
       <Container
@@ -343,6 +415,12 @@ function Task({
           </Content>
         )}
         <AssigneeList>
+          <DiagramIndicator 
+            onClick={handleDiagramClick}
+            title={task.diagramId ? "Open diagram" : "Create diagram"}
+          >
+            <FlowIcon />
+          </DiagramIndicator>
           {task.assignees?.map((memberId, index) => {
             const member = currentBoard.members.find(m => m.id.toString() === memberId);
             return member ? (
@@ -383,7 +461,7 @@ function Task({
         <TaskDialog
           task={task}
           onClose={() => setIsDialogOpen(false)}
-          onUpdate={(updates) => onUpdate(task.id, updates)}
+          onUpdate={handleUpdate}
           onDelete={onDelete}
         />
       )}

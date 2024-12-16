@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { FlowIcon } from './Icons';
 
 const Overlay = styled.div`
   position: fixed;
@@ -26,9 +27,21 @@ const Dialog = styled.div`
 
 const Header = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
+  gap: 12px;
+`;
+
+const HeaderLeft = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+`;
+
+const HeaderRight = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
 `;
 
 const Title = styled.h2`
@@ -126,6 +139,29 @@ const Button = styled.button`
   }
 `;
 
+const DiagramButton = styled.button`
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+
+  &:hover {
+    background: #f8f9fa;
+    border-color: #999;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
 function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
   const [formData, setFormData] = useState({
     title: task.title || '',
@@ -134,6 +170,8 @@ function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
     done: task.done || false,
     completedAt: task.completedAt || null
   });
+
+  const [hasDiagram, setHasDiagram] = useState(!!task.diagramId);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -157,12 +195,37 @@ function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
     }
   };
 
+  const handleOpenDiagram = async (e) => {
+    e.preventDefault();
+    let diagramId = task.diagramId;
+    if (!diagramId) {
+      diagramId = `diagram-${Date.now()}`;
+      await new Promise(resolve => {
+        onUpdate({
+          ...task,
+          diagramId
+        });
+        resolve();
+      });
+    }
+    onClose();
+    window.location.replace(`/draw?taskId=${task.id}&diagramId=${diagramId}`);
+  };
+
   return (
     <Overlay onClick={onClose}>
       <Dialog onClick={e => e.stopPropagation()}>
         <Header>
-          <Title>{isNew ? 'New Task' : 'Edit Task'}</Title>
-          <CloseButton onClick={onClose}>×</CloseButton>
+          <HeaderLeft>
+            <Title>{isNew ? 'New Task' : 'Edit Task'}</Title>
+          </HeaderLeft>
+          <HeaderRight>
+            <DiagramButton onClick={handleOpenDiagram}>
+              <FlowIcon />
+              {hasDiagram ? 'Open Diagram' : 'Create Diagram'}
+            </DiagramButton>
+            <CloseButton onClick={onClose}>×</CloseButton>
+          </HeaderRight>
         </Header>
         <Form onSubmit={handleSubmit}>
           <Field>
