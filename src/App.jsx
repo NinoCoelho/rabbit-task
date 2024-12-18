@@ -163,11 +163,11 @@ function App() {
               onBoardCreate={createNewBoard}
               onBoardSelect={selectBoard}
               onBoardUpdate={updateBoardTitle}
-              onBoardDelete={deleteBoard}
-              onBoardExport={handleExportBoard}
-              onBoardPrint={handleExportPDF}
-              onBoardShare={handleShare}
-              onBoardImport={handleImportBoard}
+              onDeleteBoard={deleteBoard}
+              onExportBoard={handleExportBoard}
+              onPrintBoard={handleExportPDF}
+              onShareBoard={handleShare}
+              onImportBoard={handleImportBoard}
             />
             <Controls>
               <ZoomControl

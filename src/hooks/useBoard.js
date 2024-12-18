@@ -67,12 +67,17 @@ export const useBoard = (initialData) => {
         alert('Cannot delete the last board');
         return prevState;
       }
-  
+
       const newBoards = prevState.boards.filter(board => board.id !== boardId);
+      
+      const newCurrentBoardId = boardId === prevState.currentBoardId
+        ? newBoards[0].id
+        : prevState.currentBoardId;
+
       return {
         ...prevState,
         boards: newBoards,
-        currentBoardId: boardId === prevState.currentBoardId ? newBoards[0].id : prevState.currentBoardId
+        currentBoardId: newCurrentBoardId
       };
     });
   };
@@ -273,7 +278,7 @@ export const useBoard = (initialData) => {
         throw new Error('Invalid board data: Missing board structure');
       }
 
-      const boardData = importedData.board;
+      const boardData = importedData.board || importedData; // Handle both formats
       const taskDiagrams = importedData.taskDiagrams || {};
 
       // Validate required board properties
@@ -284,8 +289,42 @@ export const useBoard = (initialData) => {
         }
       }
 
-      // Save task diagrams
-      Object.entries(taskDiagrams).forEach(([taskId, diagram]) => {
+      // Save task diagrams with new IDs
+      const newTaskDiagrams = {};
+      const taskIdMapping = {};
+
+      // Generate new IDs for tasks and update references
+      const newTasks = {};
+      Object.entries(boardData.tasks).forEach(([oldTaskId, task]) => {
+        const newTaskId = `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        taskIdMapping[oldTaskId] = newTaskId;
+        newTasks[newTaskId] = { ...task, id: newTaskId };
+        
+        if (taskDiagrams[oldTaskId]) {
+          newTaskDiagrams[newTaskId] = taskDiagrams[oldTaskId];
+        }
+      });
+
+      // Update column taskIds with new task IDs
+      const newColumns = {};
+      Object.entries(boardData.columns).forEach(([columnId, column]) => {
+        newColumns[columnId] = {
+          ...column,
+          taskIds: column.taskIds.map(oldTaskId => taskIdMapping[oldTaskId])
+        };
+      });
+
+      // Create new board with unique ID and updated references
+      const newBoardId = `board-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      const newBoard = {
+        ...boardData,
+        id: newBoardId,
+        tasks: newTasks,
+        columns: newColumns
+      };
+
+      // Save new task diagrams
+      Object.entries(newTaskDiagrams).forEach(([taskId, diagram]) => {
         if (diagram) {
           try {
             localStorage.setItem(`taskDiagram_${taskId}`, JSON.stringify(diagram));
@@ -295,28 +334,33 @@ export const useBoard = (initialData) => {
         }
       });
 
-      if (createNew) {
-        // Create new board with unique ID
-        const newBoardId = `board-${Date.now()}`;
-        const newBoard = {
-          ...boardData,
-          id: newBoardId,
-          title: `${boardData.title} (Copy)`
-        };
+      // Check for duplicate title and modify if needed
+      const baseTitle = boardData.title;
+      const existingTitles = state.boards.map(b => b.title);
+      
+      if (existingTitles.includes(baseTitle)) {
+        const regex = new RegExp(`^${baseTitle}(?: \\((\\d+)\\))?$`);
+        const existingNumbers = state.boards
+          .map(board => {
+            const match = board.title.match(regex);
+            return match ? parseInt(match[1] || 1) : 0;
+          })
+          .filter(num => num > 0);
 
-        setState(prevState => ({
-          ...prevState,
-          boards: [...prevState.boards, newBoard],
-          currentBoardId: newBoardId
-        }));
-      } else {
-        // Add as new board with original ID
-        setState(prevState => ({
-          ...prevState,
-          boards: [...prevState.boards, boardData],
-          currentBoardId: boardData.id
-        }));
+        const highestNum = existingNumbers.length > 0 
+          ? Math.max(...existingNumbers) 
+          : 1;
+        
+        newBoard.title = `${baseTitle} (${highestNum + 1})`;
       }
+
+      // Add the new board to state
+      setState(prevState => ({
+        ...prevState,
+        boards: [...prevState.boards, newBoard],
+        currentBoardId: newBoardId
+      }));
+
     } catch (error) {
       console.error('Error importing board:', error);
       throw new Error(`Failed to import board: ${error.message}`);

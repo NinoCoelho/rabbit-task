@@ -3,6 +3,9 @@ import styled from 'styled-components';
 
 const Container = styled.div`
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 `;
 
 const BoardSelector = styled.button`
@@ -126,6 +129,38 @@ const DeleteBoardButton = styled.span`
   }
 `;
 
+const BoardControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+`;
+
+const ToolbarButton = styled.button`
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  &:hover {
+    background: #f0f0f0;
+    color: #000;
+  }
+`;
+
+const MenuItemCurrent = styled(MenuItem)`
+  background: #f0f7ff;
+  border-left: 3px solid #0052cc;
+  
+  &:hover {
+    background: #e6f0ff;
+  }
+`;
+
 function BoardList({ 
   boards, 
   currentBoardId, 
@@ -133,7 +168,10 @@ function BoardList({
   onCreateBoard, 
   onUpdateTitle,
   onImportBoard,
-  onDeleteBoard 
+  onDeleteBoard,
+  onExportBoard,
+  onPrintBoard,
+  onShareBoard
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -175,47 +213,44 @@ function BoardList({
     }
   };
 
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
 
     try {
       const text = await file.text();
       const importedData = JSON.parse(text);
       
-      // Validate the imported data structure
-      if (!importedData?.board) {
-        throw new Error('Invalid board format: Missing board data');
-      }
-
-      const boardData = importedData.board;
+      // Check if a board with the exact same title exists
+      const baseTitle = importedData.title;
+      console.log('Original title:', baseTitle);
+      const exactMatch = boards.some(board => board.title === baseTitle);
       
-      // Validate required board properties
-      const requiredProperties = ['id', 'title', 'columns', 'tasks', 'columnOrder', 'members'];
-      for (const prop of requiredProperties) {
-        if (!boardData[prop]) {
-          throw new Error(`Invalid board format: Missing ${prop}`);
-        }
+      if (exactMatch) {
+        // Find boards with similar names and get the highest number
+        const regex = new RegExp(`^${baseTitle}(?: \\((\\d+)\\))?$`);
+        
+        const existingNumbers = boards
+          .map(board => {
+            const match = board.title.match(regex);
+            return match ? parseInt(match[1] || 1) : 0;
+          })
+          .filter(num => num > 0);
+
+        // If there are similar boards, increment the highest number
+        const highestNum = existingNumbers.length > 0 
+          ? Math.max(...existingNumbers) 
+          : 1;
+        
+        importedData.title = `${baseTitle} (${highestNum + 1})`;
+        console.log('New title:', importedData.title);
       }
 
-      // Check for existing board
-      const existingBoard = boards.find(b => b.title === boardData.title);
-      if (existingBoard) {
-        if (window.confirm(`A board named "${boardData.title}" already exists. Do you want to import it anyway?`)) {
-          onImportBoard(importedData, true); // Create as new version
-        }
-      } else {
-        onImportBoard(importedData, false); // Import as new board
-      }
-
-      // Close the dropdown after successful import
-      setIsOpen(false);
+      console.log('Importing board with title:', importedData.title);
+      onImportBoard(importedData);
     } catch (error) {
       console.error('Error importing board:', error);
-      alert('Failed to import board: ' + error.message);
-    } finally {
-      // Clear the input
-      event.target.value = '';
+      alert('Failed to import board. Please check the file format.');
     }
   };
 
@@ -238,25 +273,47 @@ function BoardList({
         </BoardSelector>
       )}
 
+      <BoardControls>
+        <ToolbarButton onClick={onExportBoard} title="Export to JSON">
+          💾 Export
+        </ToolbarButton>
+        <ToolbarButton onClick={onPrintBoard} title="Export to PDF">
+          📄 PDF
+        </ToolbarButton>
+        <ToolbarButton onClick={onShareBoard} title="Share Board">
+          🔗 Share
+        </ToolbarButton>
+      </BoardControls>
+
       {isOpen && (
         <DropdownMenu>
-          {boards.map(board => (
-            <MenuItem
-              key={board.id}
-              onClick={() => {
-                onBoardSelect(board.id);
-                setIsOpen(false);
-              }}
-            >
-              {board.title}
-              <DeleteBoardButton
-                onClick={(e) => handleDeleteBoard(e, board.id)}
-                title="Delete Board"
+          {boards.map(board => {
+            const isCurrentBoard = board.id === currentBoardId;
+            const ItemComponent = isCurrentBoard ? MenuItemCurrent : MenuItem;
+            
+            return (
+              <ItemComponent
+                key={board.id}
+                onClick={() => {
+                  onBoardSelect(board.id);
+                  setIsOpen(false);
+                }}
               >
-                −
-              </DeleteBoardButton>
-            </MenuItem>
-          ))}
+                {board.title}
+                {boards.length > 1 && !isCurrentBoard && (
+                  <DeleteBoardButton
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteBoard(e, board.id);
+                    }}
+                    title="Delete Board"
+                  >
+                    −
+                  </DeleteBoardButton>
+                )}
+              </ItemComponent>
+            );
+          })}
           <CreateBoardButton
             onClick={() => {
               onCreateBoard();
