@@ -385,7 +385,12 @@ function Task({
   };
 
   const handleUpdate = (taskId, updates) => {
-    onUpdate(taskId, updates);
+    if (!task) {
+      console.error('Task is undefined');
+      return;
+    }
+
+    onUpdate(taskId, { ...task, ...updates });
     // If there's a diagramId in the updates, let the update complete before any navigation
     if (updates.diagramId) {
       return new Promise(resolve => {
@@ -469,4 +474,4 @@ function Task({
   );
 }
 
-export default Task; 
+export default Task;

@@ -139,29 +139,6 @@ const Button = styled.button`
   }
 `;
 
-const DiagramButton = styled.button`
-  padding: 6px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: white;
-  color: #666;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-
-  &:hover {
-    background: #f8f9fa;
-    border-color: #999;
-  }
-
-  svg {
-    width: 16px;
-    height: 16px;
-  }
-`;
-
 function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
   const [formData, setFormData] = useState({
     title: task.title || '',
@@ -171,14 +148,16 @@ function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
     completedAt: task.completedAt || null
   });
 
-  const [hasDiagram, setHasDiagram] = useState(!!task.diagramId);
-
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!task) {
+      console.error('Task is undefined');
+      return;
+    }
     if (!formData.title.trim()) {
       return;
     }
-    onUpdate({
+    onUpdate(task.id, {
       title: formData.title.trim(),
       description: formData.description.trim(),
       dueDate: formData.dueDate,
@@ -195,23 +174,6 @@ function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
     }
   };
 
-  const handleOpenDiagram = async (e) => {
-    e.preventDefault();
-    let diagramId = task.diagramId;
-    if (!diagramId) {
-      diagramId = `diagram-${Date.now()}`;
-      await new Promise(resolve => {
-        onUpdate({
-          ...task,
-          diagramId
-        });
-        resolve();
-      });
-    }
-    onClose();
-    window.location.replace(`/draw?taskId=${task.id}&diagramId=${diagramId}`);
-  };
-
   return (
     <Overlay onClick={onClose}>
       <Dialog onClick={e => e.stopPropagation()}>
@@ -220,10 +182,6 @@ function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
             <Title>{isNew ? 'New Task' : 'Edit Task'}</Title>
           </HeaderLeft>
           <HeaderRight>
-            <DiagramButton onClick={handleOpenDiagram}>
-              <FlowIcon />
-              {hasDiagram ? 'Open Diagram' : 'Create Diagram'}
-            </DiagramButton>
             <CloseButton onClick={onClose}>×</CloseButton>
           </HeaderRight>
         </Header>
@@ -293,4 +251,4 @@ function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
   );
 }
 
-export default TaskDialog; 
+export default TaskDialog;
