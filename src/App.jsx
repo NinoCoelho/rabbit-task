@@ -412,8 +412,13 @@ function App() {
 
   const handleExportBoard = () => {
     try {
+      // Create export data including board and diagrams
+      const exportData = {
+        board: currentBoard,
+        taskDiagrams: {}
+      };
+
       // Get all task diagrams for the current board
-      const taskDiagrams = {};
       currentBoard.columnOrder.forEach(columnId => {
         const column = currentBoard.columns[columnId];
         column.taskIds.forEach(taskId => {
@@ -421,17 +426,11 @@ function App() {
           if (task.diagramId) {
             const savedDiagram = localStorage.getItem(`taskDiagram_${task.id}`);
             if (savedDiagram) {
-              taskDiagrams[task.id] = JSON.parse(savedDiagram);
+              exportData.taskDiagrams[task.id] = JSON.parse(savedDiagram);
             }
           }
         });
       });
-
-      // Create export data including board and diagrams
-      const exportData = {
-        board: currentBoard,
-        taskDiagrams: taskDiagrams
-      };
 
       const dataStr = JSON.stringify(exportData, null, 2);
       const blob = new Blob([dataStr], { type: 'application/json' });
@@ -585,32 +584,50 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  const handleImportBoard = (importedData) => {
+    try {
+      // Validate imported data
+      if (!importedData) {
+        throw new Error('No data to import');
+      }
+
+      // Parse the data if it's a string
+      const parsedData = typeof importedData === 'string' 
+        ? JSON.parse(importedData)
+        : importedData;
+
+      // Validate board structure
+      if (!parsedData.board || !parsedData.board.tasks || !parsedData.board.columns || !parsedData.board.columnOrder) {
+        throw new Error('Invalid board structure');
+      }
+
+      // Create a new board ID
+      const newBoardId = `board-${Date.now()}`;
+      const boardTitle = parsedData.board.title || 'Imported Board';
+
+      // Add the imported board to the state
+      setState(prevState => ({
+        ...prevState,
+        boards: [...prevState.boards, { ...parsedData.board, id: newBoardId, title: boardTitle }],
+        currentBoardId: newBoardId
+      }));
+
+      // Save task diagrams to localStorage
+      Object.keys(parsedData.taskDiagrams).forEach(taskId => {
+        localStorage.setItem(`taskDiagram_${taskId}`, JSON.stringify(parsedData.taskDiagrams[taskId]));
+      });
+    } catch (error) {
+      console.error('Error importing board:', error);
+      alert('Failed to import board: ' + error.message);
+    }
+  };
+
   const importData = (event) => {
     const file = event.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        try {
-          const importedData = JSON.parse(e.target.result);
-          // Validate the imported data structure
-          if (
-            importedData.tasks &&
-            importedData.columns &&
-            importedData.columnOrder
-          ) {
-            const newBoardId = `board-${Date.now()}`;
-            const boardTitle = importedData.title || file.name.replace('.json', '');
-            setState(prevState => ({
-              ...prevState,
-              boards: [...prevState.boards, { ...importedData, id: newBoardId, title: boardTitle }],
-              currentBoardId: newBoardId
-            }));
-          } else {
-            alert('Invalid file format');
-          }
-        } catch (error) {
-          alert('Error reading file: ' + error.message);
-        }
+        handleImportBoard(e.target.result);
       };
       reader.readAsText(file);
     }
@@ -916,39 +933,6 @@ function App() {
     }
   };
 
-  const handleImportBoard = (data, createNew = false) => {
-    const board = data.board || data;
-    const taskDiagrams = data.taskDiagrams || {};
-    
-    if (existingBoard && !createNew) {
-      // Override existing board
-      const updatedBoards = state.boards.map(b => 
-        b.id === existingBoard.id ? { ...board, id: existingBoard.id } : b
-      );
-      setState({ ...state, boards: updatedBoards, currentBoardId: existingBoard.id });
-    } else {
-      // Create new board with modified title if needed
-      let newTitle = board.title;
-      if (existingBoard) {
-        const now = new Date().toISOString().replace(/[:.]/g, '-');
-        newTitle = `${board.title} (Imported ${now})`;
-      }
-      const newBoard = { ...board, id: Date.now().toString(), title: newTitle };
-      setState({
-        ...state,
-        boards: [...state.boards, newBoard],
-        currentBoardId: newBoard.id
-      });
-    }
-
-    // Save task diagrams to localStorage
-    Object.entries(taskDiagrams).forEach(([taskId, diagram]) => {
-      localStorage.setItem(`taskDiagram_${taskId}`, JSON.stringify(diagram));
-    });
-
-    setImportDialogData(null);
-  };
-
   useEffect(() => {
     const boardFromUrl = getBoardFromUrl();
     if (boardFromUrl) {
@@ -1156,4 +1140,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

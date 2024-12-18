@@ -1,4 +1,4 @@
-import React, { forwardRef, useState, useEffect, useRef } from 'react';
+import React, { forwardRef, useState, useEffect, useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import ChecklistDialog from './ChecklistDialog';
 
@@ -650,121 +650,147 @@ const FlowCanvas = forwardRef(({
         )}
       </svg>
 
-      {diagram.shapes.map(shape => (
-        <Shape
-          key={shape.id}
-          $type={shape.type}
-          $isSelected={selectedShape === shape.id}
-          $progress={shape.type === 'checklist' ? getChecklistProgress(shape.items) : undefined}
-          style={{
-            left: shape.x,
-            top: shape.y,
-            width: shape.width,
-            height: shape.type === 'diamond' ? shape.width : 
-                   shape.type === 'end' ? 30 : 'auto'
-          }}
-          onClick={(e) => handleShapeClick(e, shape)}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            handleMouseDown(e, shape);
-          }}
-          onDoubleClick={(e) => handleShapeDoubleClick(e, shape)}
-        >
-          {shape.type === 'checklist' ? (
-            <>
-              <ChecklistTitle $progress={getChecklistProgress(shape.items)}>
-                {shape.text}
-              </ChecklistTitle>
-              <ChecklistContent 
-                onClick={e => e.stopPropagation()}
-                onMouseDown={e => e.stopPropagation()}
-              >
-                {shape.items?.map((item, index) => (
-                  <ChecklistItem 
-                    key={index}
-                    onClick={e => e.stopPropagation()}
-                    onMouseDown={e => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={item.checked}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        handleCheckboxChange(shape.id, index, e.target.checked);
-                      }}
+      {diagram.shapes.map(shape => {
+        // Destructure shape properties
+        const { x, y, width, type, items, text, id } = shape;
+
+        const handleMouseDownWrapper = useCallback((e) => {
+          e.stopPropagation();
+          handleMouseDown(e, shape);
+        }, [shape]);
+
+        const handleShapeClickWrapper = useCallback((e) => {
+          handleShapeClick(e, shape);
+        }, [shape]);
+
+        const handleShapeDoubleClickWrapper = useCallback((e) => {
+          handleShapeDoubleClick(e, shape);
+        }, [shape]);
+
+        const handleCheckboxChangeWrapper = useCallback((index, checked) => {
+          handleCheckboxChange(id, index, checked);
+        }, [id]);
+
+        const renderShapeContent = () => {
+          if (type === 'checklist') {
+            return (
+              <>
+                <ChecklistTitle $progress={getChecklistProgress(items)}>
+                  {text}
+                </ChecklistTitle>
+                <ChecklistContent 
+                  onClick={e => e.stopPropagation()}
+                  onMouseDown={e => e.stopPropagation()}
+                >
+                  {items?.map((item, index) => (
+                    <ChecklistItem 
+                      key={index}
                       onClick={e => e.stopPropagation()}
-                    />
-                    <span>{item.text}</span>
-                  </ChecklistItem>
-                ))}
-              </ChecklistContent>
-            </>
-          ) : shape.type === 'note' ? (
-            <NoteContent
-              ref={el => noteRefs.current[shape.id] = el}
-              contentEditable
-              suppressContentEditableWarning
-              onKeyDown={e => handleNoteKeyDown(e, shape)}
-              onInput={e => handleNoteInput(e, shape)}
-              onBlur={e => onTextEdit(shape.id, e.currentTarget.innerHTML)}
-              dangerouslySetInnerHTML={{ __html: shape.text }}
-            />
-          ) : shape.type !== 'end' && (
-            editingText === shape.id ? (
-              <input
-                data-shape-id={shape.id}
-                type="text"
-                value={shape.text}
-                onChange={(e) => onTextEdit(shape.id, e.target.value)}
-                onBlur={() => setEditingText(null)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === 'Escape') {
-                    setEditingText(null);
-                  }
-                  e.stopPropagation();
-                }}
-                autoFocus
-                style={{ 
-                  transform: shape.type === 'diamond' ? 'rotate(-45deg)' : 'none',
-                  width: shape.type === 'diamond' ? '100%' : undefined,
-                  fontSize: shape.type === 'diamond' ? '8px' : '10px'
-                }}
-                onFocus={(e) => {
-                  e.target.select();
-                }}
+                      onMouseDown={e => e.stopPropagation()}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={item.checked}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          handleCheckboxChangeWrapper(index, e.target.checked);
+                        }}
+                        onClick={e => e.stopPropagation()}
+                      />
+                      <span>{item.text}</span>
+                    </ChecklistItem>
+                  ))}
+                </ChecklistContent>
+              </>
+            );
+          } else if (type === 'note') {
+            return (
+              <NoteContent
+                ref={el => noteRefs.current[id] = el}
+                contentEditable
+                suppressContentEditableWarning
+                onKeyDown={e => handleNoteKeyDown(e, shape)}
               />
-            ) : (
-              <ShapeText 
-                width={shape.width} 
-                $type={shape.type}
-              >
-                {shape.text}
-              </ShapeText>
-            )
-          )}
-          {selectedShape === shape.id && (
-            <>
-              {['nw', 'ne', 'se', 'sw'].map(position => (
-                <ResizeHandle
-                  key={position}
-                  $position={position}
-                  $isVisible={true}
-                  onMouseDown={(e) => handleResizeStart(e, shape, position)}
+            );
+          }
+          return null;
+        };
+
+        return (
+          <Shape
+            key={shape.id}
+            $type={shape.type}
+            $isSelected={selectedShape === shape.id}
+            $progress={shape.type === 'checklist' ? getChecklistProgress(shape.items) : undefined}
+            style={{
+              left: shape.x,
+              top: shape.y,
+              width: shape.width,
+              height: shape.type === 'diamond' ? shape.width : 
+                     shape.type === 'end' ? 30 : 'auto'
+            }}
+            onClick={handleShapeClickWrapper}
+            onMouseDown={handleMouseDownWrapper}
+            onDoubleClick={handleShapeDoubleClickWrapper}
+          >
+            {renderShapeContent()}
+            {shape.type !== 'note' && shape.type !== 'checklist' && (
+              editingText === shape.id ? (
+                <input
+                  data-shape-id={shape.id}
+                  type="text"
+                  value={shape.text}
+                  onChange={(e) => onTextEdit(shape.id, e.target.value)}
+                  onBlur={() => setEditingText(null)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === 'Escape') {
+                      setEditingText(null);
+                    }
+                    e.stopPropagation();
+                  }}
+                  autoFocus
+                  style={{ 
+                    transform: shape.type === 'diamond' ? 'rotate(-45deg)' : 'none',
+                    width: shape.type === 'diamond' ? '100%' : undefined,
+                    fontSize: shape.type === 'diamond' ? '8px' : '10px'
+                  }}
+                  onFocus={(e) => {
+                    e.target.select();
+                  }}
                 />
-              ))}
-              {['top', 'right', 'bottom', 'left'].map(position => (
-                <ConnectionHandle
-                  key={position}
-                  $position={position}
+              ) : (
+                <ShapeText 
+                  width={shape.width} 
                   $type={shape.type}
-                  $isVisible={true}
-                  onMouseDown={(e) => handleConnectionStart(e, shape.id, position)}
-                />
-              ))}
-            </>
-          )}
-        </Shape>
-      ))}
+                >
+                  {shape.text}
+                </ShapeText>
+              )
+            )}
+            {selectedShape === shape.id && (
+              <>
+                {['nw', 'ne', 'se', 'sw'].map(position => (
+                  <ResizeHandle
+                    key={position}
+                    $position={position}
+                    $isVisible={true}
+                    onMouseDown={(e) => handleResizeStart(e, shape, position)}
+                  />
+                ))}
+                {['top', 'right', 'bottom', 'left'].map(position => (
+                  <ConnectionHandle
+                    key={position}
+                    $position={position}
+                    $type={shape.type}
+                    $isVisible={true}
+                    onMouseDown={(e) => handleConnectionStart(e, shape.id, position)}
+                  />
+                ))}
+              </>
+            )}
+          </Shape>
+        );
+      })}
       {checklistDialog.open && (
         <ChecklistDialog
           title={checklistDialog.shape.isNew ? '' : checklistDialog.shape.text}
@@ -777,4 +803,4 @@ const FlowCanvas = forwardRef(({
   );
 });
 
-export default FlowCanvas; 
+export default FlowCanvas;
