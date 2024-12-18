@@ -588,6 +588,26 @@ const FlowCanvas = forwardRef(({
     }
   };
 
+  // Move callback definitions outside of the render loop
+  const handleMouseDownWrapper = useCallback((shape, e) => {
+    e.stopPropagation();
+    handleMouseDown(e, shape);
+  }, []);
+
+  const handleShapeClickWrapper = useCallback((shape, e) => {
+    e.stopPropagation();
+    handleShapeClick(e, shape);
+  }, []);
+
+  const handleShapeDoubleClickWrapper = useCallback((shape, e) => {
+    e.stopPropagation();
+    handleShapeDoubleClick(e, shape);
+  }, []);
+
+  const handleCheckboxChangeWrapper = useCallback((shapeId, index, checked) => {
+    handleCheckboxChange(shapeId, index, checked);
+  }, []);
+
   return (
     <CanvasContainer
       ref={ref}
@@ -599,20 +619,21 @@ const FlowCanvas = forwardRef(({
       onDrop={handleDrop}
     >
       {title && <CanvasTitle>{title}</CanvasTitle>}
-      <defs>
-        <marker
-          id="arrowhead"
-          markerWidth="10"
-          markerHeight="7"
-          refX="9"
-          refY="3.5"
-          orient="auto"
-        >
-          <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
-        </marker>
-      </defs>
-
+      
       <svg width="100%" height="100%" style={{ position: 'absolute' }}>
+        <defs>
+          <marker
+            id="arrowhead"
+            markerWidth="10"
+            markerHeight="7"
+            refX="9"
+            refY="3.5"
+            orient="auto"
+          >
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+          </marker>
+        </defs>
+
         {diagram.connections.map(conn => {
           const fromShape = diagram.shapes.find(s => s.id === conn.from);
           const toShape = diagram.shapes.find(s => s.id === conn.to);
@@ -654,23 +675,6 @@ const FlowCanvas = forwardRef(({
         // Destructure shape properties
         const { x, y, width, type, items, text, id } = shape;
 
-        const handleMouseDownWrapper = useCallback((e) => {
-          e.stopPropagation();
-          handleMouseDown(e, shape);
-        }, [shape]);
-
-        const handleShapeClickWrapper = useCallback((e) => {
-          handleShapeClick(e, shape);
-        }, [shape]);
-
-        const handleShapeDoubleClickWrapper = useCallback((e) => {
-          handleShapeDoubleClick(e, shape);
-        }, [shape]);
-
-        const handleCheckboxChangeWrapper = useCallback((index, checked) => {
-          handleCheckboxChange(id, index, checked);
-        }, [id]);
-
         const renderShapeContent = () => {
           if (type === 'checklist') {
             return (
@@ -693,7 +697,7 @@ const FlowCanvas = forwardRef(({
                         checked={item.checked}
                         onChange={(e) => {
                           e.stopPropagation();
-                          handleCheckboxChangeWrapper(index, e.target.checked);
+                          handleCheckboxChangeWrapper(id, index, e.target.checked);
                         }}
                         onClick={e => e.stopPropagation()}
                       />
@@ -729,9 +733,9 @@ const FlowCanvas = forwardRef(({
               height: shape.type === 'diamond' ? shape.width : 
                      shape.type === 'end' ? 30 : 'auto'
             }}
-            onClick={handleShapeClickWrapper}
-            onMouseDown={handleMouseDownWrapper}
-            onDoubleClick={handleShapeDoubleClickWrapper}
+            onClick={(e) => handleShapeClickWrapper(shape, e)}
+            onMouseDown={(e) => handleMouseDownWrapper(shape, e)}
+            onDoubleClick={(e) => handleShapeDoubleClickWrapper(shape, e)}
           >
             {renderShapeContent()}
             {shape.type !== 'note' && shape.type !== 'checklist' && (

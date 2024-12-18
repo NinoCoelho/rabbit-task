@@ -1,6 +1,9 @@
 export default {
   preset: {
-    name: 'minimal', // or 'minimal-2023', 'android-chrome', 'apple-touch', 'favicons'
+    name: 'minimal',
   },
-  images: ['public/favicon.png']
-} 
+  images: ['public/favicon.png'],
+  output: {
+    path: 'public'
+  }
+}
