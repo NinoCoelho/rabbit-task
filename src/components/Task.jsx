@@ -17,6 +17,7 @@ const Container = styled.div`
   position: relative;
   max-width: 100%;
   word-break: break-word;
+  font-size: 10px;
 
   &:hover {
     box-shadow: 0px 3px 7px rgba(0,0,0,0.12);
@@ -28,7 +29,7 @@ const TitleBar = styled.div`
   background: #fff59d;
   border-bottom: 1px solid rgba(0,0,0,0.1);
   font-weight: 600;
-  font-size: 1em;
+  font-size: 10px;
   color: #2c3e50;
   display: flex;
   align-items: center;
@@ -47,16 +48,16 @@ const TaskTitleText = styled.span`
 `;
 
 const Content = styled.div`
-  padding: 8px;
-  font-size: 0.9em;
-  color: #666;
-  line-height: 1.4;
+  padding: 6px 8px;
+  color: #34495e;
+  font-size: 10px;
+  text-decoration: ${props => props.$isDone ? 'line-through' : 'none'};
+  opacity: ${props => props.$isDone ? 0.7 : 1};
+  margin-bottom: ${props => props.$hasDueDate ? '20px' : '0'};
   white-space: pre-wrap;
   min-height: 20px;
   max-height: 200px;
   overflow-y: auto;
-  opacity: ${props => props.$isDone ? 0.7 : 1};
-  padding-bottom: ${props => props.$hasDueDate ? '24px' : '8px'};
 `;
 
 const StatusBar = styled.div`
@@ -196,10 +197,11 @@ const DiagramIndicator = styled.div`
 function Task({ 
   task, 
   index, 
-  onUpdate, 
-  onDelete, 
+  onTaskUpdate,
+  onDelete: onTaskDelete,
   currentBoard,
-  column
+  column,
+  board
 }) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -224,10 +226,12 @@ function Task({
 
   const handleCheckboxChange = (e) => {
     e.stopPropagation();
-    onUpdate(task.id, { 
-      ...task, 
+    if (!onTaskUpdate) return;
+    
+    onTaskUpdate(task.id, {
+      ...task,
       done: e.target.checked,
-      completedAt: e.target.checked ? new Date().toISOString() : null 
+      completedAt: e.target.checked ? new Date().toISOString() : null
     });
   };
 
@@ -326,20 +330,22 @@ function Task({
 
   const handleDrop = (e) => {
     e.preventDefault();
-    e.currentTarget.style.backgroundColor = '';
     try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (data.type === 'team-member') {
-        const member = data.member;
-        if (!task.assignees?.includes(member.id.toString())) {
-          onUpdate(task.id, {
+      const data = e.dataTransfer.getData('text');
+      if (!data) return;
+
+      const dropData = JSON.parse(data);
+      if (dropData.type === 'MEMBER') {
+        const memberId = dropData.id;
+        if (!task.assignees?.includes(memberId)) {
+          onTaskUpdate(task.id, {
             ...task,
-            assignees: [...(task.assignees || []), member.id.toString()]
+            assignees: [...(task.assignees || []), memberId]
           });
         }
       }
-    } catch (err) {
-      console.error('Error handling member drop:', err);
+    } catch (error) {
+      console.error('Error handling member drop:', error);
     }
   };
 
@@ -371,7 +377,7 @@ function Task({
       localStorage.setItem(`taskDiagram_${task.id}`, JSON.stringify(newDiagram));
 
       // Update task with new diagram ID
-      onUpdate(task.id, {
+      onTaskUpdate(task.id, {
         ...task,
         diagramId
       });
@@ -384,18 +390,19 @@ function Task({
     }
   };
 
-  const handleUpdate = (taskId, updates) => {
-    if (!task) {
-      console.error('Task is undefined');
+  const members = currentBoard?.members || [];
+
+  const handleDelete = () => {
+    if (!onTaskDelete) {
+      console.error('onTaskDelete is not defined');
       return;
     }
-
-    onUpdate(taskId, { ...task, ...updates });
-    // If there's a diagramId in the updates, let the update complete before any navigation
-    if (updates.diagramId) {
-      return new Promise(resolve => {
-        setTimeout(resolve, 0);
-      });
+    
+    try {
+      onTaskDelete(task.id, column.id);
+      console.log('Deleting task:', task.id, 'from column:', column.id); // Debug log
+    } catch (error) {
+      console.error('Error deleting task:', error);
     }
   };
 
@@ -426,23 +433,17 @@ function Task({
           >
             <FlowIcon />
           </DiagramIndicator>
-          {task.assignees?.map((memberId, index) => {
-            const member = currentBoard.members.find(m => m.id.toString() === memberId);
-            return member ? (
-              <AssigneeMember
+          {task.assignees?.map(assigneeId => {
+            const member = members.find(m => m.id === assigneeId);
+            if (!member) return null;
+            
+            return (
+              <TeamMember 
                 key={member.id}
-                $color={MEMBER_COLORS[member.id % MEMBER_COLORS.length]}
-                title={`Remove ${member.name}`}
-                onClick={() => {
-                  onUpdate(task.id, {
-                    ...task,
-                    assignees: task.assignees.filter(id => id !== member.id.toString())
-                  });
-                }}
-              >
-                {member.initials}
-              </AssigneeMember>
-            ) : null;
+                member={member}
+                size="small"
+              />
+            );
           })}
         </AssigneeList>
         {status && (
@@ -466,8 +467,8 @@ function Task({
         <TaskDialog
           task={task}
           onClose={() => setIsDialogOpen(false)}
-          onUpdate={handleUpdate}
-          onDelete={onDelete}
+          onUpdate={onTaskUpdate}
+          onDelete={handleDelete}
         />
       )}
     </>

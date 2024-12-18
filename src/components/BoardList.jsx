@@ -90,6 +90,7 @@ const ImportButton = styled(MenuItem)`
   color: #0052cc;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
   
   input {
     position: absolute;
@@ -99,6 +100,11 @@ const ImportButton = styled(MenuItem)`
     height: 100%;
     opacity: 0;
     cursor: pointer;
+    z-index: 1;
+  }
+
+  &:hover {
+    background: #f8f9fa;
   }
 `;
 
@@ -169,6 +175,50 @@ function BoardList({
     }
   };
 
+  const handleFileChange = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const importedData = JSON.parse(text);
+      
+      // Validate the imported data structure
+      if (!importedData?.board) {
+        throw new Error('Invalid board format: Missing board data');
+      }
+
+      const boardData = importedData.board;
+      
+      // Validate required board properties
+      const requiredProperties = ['id', 'title', 'columns', 'tasks', 'columnOrder', 'members'];
+      for (const prop of requiredProperties) {
+        if (!boardData[prop]) {
+          throw new Error(`Invalid board format: Missing ${prop}`);
+        }
+      }
+
+      // Check for existing board
+      const existingBoard = boards.find(b => b.title === boardData.title);
+      if (existingBoard) {
+        if (window.confirm(`A board named "${boardData.title}" already exists. Do you want to import it anyway?`)) {
+          onImportBoard(importedData, true); // Create as new version
+        }
+      } else {
+        onImportBoard(importedData, false); // Import as new board
+      }
+
+      // Close the dropdown after successful import
+      setIsOpen(false);
+    } catch (error) {
+      console.error('Error importing board:', error);
+      alert('Failed to import board: ' + error.message);
+    } finally {
+      // Clear the input
+      event.target.value = '';
+    }
+  };
+
   return (
     <Container>
       {isEditing ? (
@@ -216,14 +266,12 @@ function BoardList({
             + Create New Board
           </CreateBoardButton>
           <ImportButton>
-            Open Board
+            <span>📂 Open Board</span>
             <input
               type="file"
               accept=".json"
-              onChange={(e) => {
-                onImportBoard(e);
-                setIsOpen(false);
-              }}
+              onChange={handleFileChange}
+              onClick={e => e.stopPropagation()}
             />
           </ImportButton>
         </DropdownMenu>

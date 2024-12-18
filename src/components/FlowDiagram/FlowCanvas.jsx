@@ -533,8 +533,14 @@ const FlowCanvas = forwardRef(({
   const handleDrop = (e) => {
     e.preventDefault();
     try {
-      const data = JSON.parse(e.dataTransfer.getData('application/json'));
-      if (data.type === 'new-shape') {
+      const data = e.dataTransfer.getData('application/json');
+      if (!data) {
+        console.warn('No data received in drop event');
+        return;
+      }
+
+      const parsedData = JSON.parse(data);
+      if (parsedData.type === 'new-shape') {
         const canvasRect = ref.current.getBoundingClientRect();
         const scrollLeft = ref.current.scrollLeft;
         const scrollTop = ref.current.scrollTop;
@@ -542,13 +548,13 @@ const FlowCanvas = forwardRef(({
         const x = e.clientX - canvasRect.left + scrollLeft;
         const y = e.clientY - canvasRect.top + scrollTop;
         
-        if (data.shapeType === 'checklist') {
+        if (parsedData.shapeType === 'checklist') {
           setChecklistDialog({ 
             open: true, 
             shape: { x, y, isNew: true }
           });
         } else {
-          onAddShape(data.shapeType, x, y);
+          onAddShape(parsedData.shapeType, x, y);
         }
       }
     } catch (error) {

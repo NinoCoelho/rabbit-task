@@ -150,27 +150,39 @@ function TaskDialog({ task, onClose, onUpdate, onDelete, isNew = false }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!task) {
-      console.error('Task is undefined');
+    if (!onUpdate) {
+      console.error('onUpdate is not defined');
       return;
     }
+
     if (!formData.title.trim()) {
       return;
     }
+
     onUpdate(task.id, {
       title: formData.title.trim(),
       description: formData.description.trim(),
-      dueDate: formData.dueDate,
+      dueDate: formData.dueDate || null,
       done: formData.done,
       completedAt: formData.done ? (formData.completedAt || new Date().toISOString()) : null
     });
+    
     onClose();
   };
 
   const handleDelete = () => {
+    if (!onDelete) {
+      console.error('onDelete is not defined');
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this task?')) {
-      onDelete(task.id);
-      onClose();
+      try {
+        onDelete();
+        onClose();
+      } catch (error) {
+        console.error('Error deleting task:', error);
+      }
     }
   };
 

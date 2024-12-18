@@ -16,10 +16,10 @@ const Container = styled.div`
 
 const TitleContainer = styled.div`
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 6px 8px;
-  background: #f4f5f7;
+  padding: 8px;
+  background: white;
+  border-bottom: 1px solid #e1e4e8;
 `;
 
 const Title = styled.div`
@@ -54,8 +54,9 @@ const DeleteButton = styled.button`
 const TaskList = styled.div`
   padding: 8px;
   flex-grow: 1;
-  overflow-y: auto;
-  min-height: 0;
+  min-height: 100px;
+  
+  overflow-y: visible;
   
   &::-webkit-scrollbar {
     width: 8px;
@@ -80,19 +81,18 @@ const TaskContainer = styled.div`
 `;
 
 const AddTaskButton = styled.button`
-  width: 100%;
-  padding: 6px;
-  background: none;
-  border: 2px dashed #ddd;
-  border-radius: 3px;
+  width: calc(100% - 16px);
+  border: none;
+  padding: 4px;
+  background: #f1f3f5;
   color: #666;
   cursor: pointer;
-  margin-top: 6px;
-  font-size: 0.9em;
-  
+  font-size: 8px;
+  border-radius: 3px;
+  margin: 4px 8px;
+
   &:hover {
-    background: #f8f9fa;
-    border-color: #999;
+    background: #e9ecef;
   }
 `;
 
@@ -154,14 +154,16 @@ const NewTaskDueDate = styled.input.attrs({ type: 'datetime-local' })`
 function Column({ 
   column, 
   tasks, 
+  board, 
   onUpdateTitle, 
   onDelete, 
   onAddTask,
   onUpdateTask,
   onDeleteTask,
   dragHandleProps,
-  currentBoard,
-  updateCurrentBoard
+  updateCurrentBoard,
+  onTaskUpdate,
+  onTaskDelete
 }) {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
@@ -220,17 +222,19 @@ function Column({
 
   const handleNewTaskSubmit = (e) => {
     e.preventDefault();
-    if (newTaskTitle.trim()) {
-      onAddTask({
-        title: newTaskTitle.trim(),
-        description: newTaskDescription.trim(),
-        dueDate: newTaskDueDate || null
-      });
-      setNewTaskTitle('');
-      setNewTaskDescription('');
-      setNewTaskDueDate('');
-      setIsAddingTask(false);
-    }
+    if (!onAddTask || !newTaskTitle.trim()) return;
+
+    onAddTask(column.id)({
+      title: newTaskTitle.trim(),
+      description: newTaskDescription.trim(),
+      dueDate: newTaskDueDate || null,
+      addToTop: true
+    });
+    
+    setNewTaskTitle('');
+    setNewTaskDescription('');
+    setNewTaskDueDate('');
+    setIsAddingTask(false);
   };
 
   const handleNewTaskBlur = (e) => {
@@ -262,17 +266,19 @@ function Column({
   const handleDrop = (e) => {
     e.preventDefault();
     e.currentTarget.style.backgroundColor = 'white';
+    
     try {
       const data = e.dataTransfer.getData('text/plain');
       if (!data) return;
-      
+
       const { taskId, sourceColumnId, sourceIndex } = JSON.parse(data);
       if (!taskId || !sourceColumnId) return;
       
-      const dropTarget = e.target.closest('[data-task-index]');
-      const targetIndex = dropTarget ? parseInt(dropTarget.dataset.taskIndex) : tasks.length;
-      
       if (sourceColumnId === column.id) {
+        // Reordering within the same column
+        const dropTarget = e.target.closest('[data-task-index]');
+        const targetIndex = dropTarget ? parseInt(dropTarget.dataset.taskIndex) : tasks.length;
+        
         const newTaskIds = Array.from(column.taskIds);
         newTaskIds.splice(sourceIndex, 1);
         newTaskIds.splice(targetIndex, 0, taskId);
@@ -288,18 +294,19 @@ function Column({
           }
         }));
       } else {
-        const task = currentBoard.tasks[taskId];
+        // Moving to a different column
+        const task = board.tasks[taskId];
         if (!task) return;
 
-        if (!currentBoard.columns[sourceColumnId] || !currentBoard.columns[column.id]) {
+        if (!board.columns[sourceColumnId] || !board.columns[column.id]) {
           console.error('Invalid column IDs');
           return;
         }
 
-        const sourceColumn = currentBoard.columns[sourceColumnId];
+        const sourceColumn = board.columns[sourceColumnId];
         const sourceTaskIds = sourceColumn.taskIds || [];
         const targetTaskIds = column.taskIds || [];
-
+        
         const newSourceTaskIds = sourceTaskIds.filter(id => id !== taskId);
         const newTargetTaskIds = [...targetTaskIds, taskId];
 
@@ -346,30 +353,17 @@ function Column({
         )}
         <DeleteButton onClick={() => onDelete(column.id)}>×</DeleteButton>
       </TitleContainer>
+      
+      <AddTaskButton onClick={handleAddTask}>+ Add Task</AddTaskButton>
+
       <TaskList
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         $isDraggingOver={false}
       >
-        {tasks.map((task, index) => (
-          <TaskContainer key={task.id} data-task-index={index}>
-            <Task 
-              key={task.id} 
-              task={task} 
-              index={index}
-              onUpdate={onUpdateTask}
-              onDelete={onDeleteTask}
-              currentBoard={currentBoard}
-              column={column}
-            />
-          </TaskContainer>
-        ))}
-        {isAddingTask ? (
-          <NewTaskForm 
-            onSubmit={handleNewTaskSubmit}
-            onBlur={handleNewTaskBlur}
-          >
+        {isAddingTask && (
+          <NewTaskForm onSubmit={handleNewTaskSubmit} onBlur={handleNewTaskBlur}>
             <NewTaskInput
               ref={newTaskInputRef}
               value={newTaskTitle}
@@ -400,11 +394,21 @@ function Column({
               placeholder="Set due date (optional)"
             />
           </NewTaskForm>
-        ) : (
-          <AddTaskButton onClick={handleAddTask}>
-            + Add Task
-          </AddTaskButton>
         )}
+        {tasks.map((task, index) => (
+          <TaskContainer key={task.id} data-task-index={index}>
+            <Task 
+              key={task.id} 
+              task={task} 
+              index={index}
+              onTaskUpdate={onTaskUpdate}
+              onDelete={onTaskDelete}
+              currentBoard={board}
+              column={column}
+              board={board}
+            />
+          </TaskContainer>
+        ))}
       </TaskList>
     </Container>
   );

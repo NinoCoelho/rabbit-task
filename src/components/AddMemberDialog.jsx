@@ -7,18 +7,19 @@ const DialogOverlay = styled.div`
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
 `;
 
-const DialogContent = styled.div`
+const DialogContainer = styled.div`
   background: white;
   padding: 20px;
   border-radius: 8px;
-  min-width: 300px;
+  width: 90%;
+  max-width: 400px;
 `;
 
 const Input = styled.input`
@@ -33,52 +34,61 @@ const ButtonGroup = styled.div`
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 20px;
+  margin-top: 16px;
 `;
 
 const Button = styled.button`
   padding: 8px 16px;
   border-radius: 4px;
-  border: 1px solid #ddd;
-  background: ${props => props.$primary ? '#0052cc' : 'white'};
-  color: ${props => props.$primary ? 'white' : '#333'};
+  border: none;
   cursor: pointer;
-
-  &:hover {
-    background: ${props => props.$primary ? '#0047b3' : '#f8f9fa'};
+  
+  &.cancel {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+  }
+  
+  &.add {
+    background: #0052cc;
+    color: white;
   }
 `;
 
-function AddMemberDialog({ onClose, onAddMember }) {
+const AddMemberDialog = ({ onClose, onAddMember }) => {
   const [name, setName] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (name.trim()) {
       onAddMember(name.trim());
+      setName('');
     }
   };
 
   return (
     <DialogOverlay onClick={onClose}>
-      <DialogContent onClick={e => e.stopPropagation()}>
+      <DialogContainer onClick={e => e.stopPropagation()}>
         <h3>Add Team Member</h3>
         <form onSubmit={handleSubmit}>
           <Input
             type="text"
-            placeholder="Enter member name"
             value={name}
             onChange={e => setName(e.target.value)}
+            placeholder="Enter member name"
             autoFocus
           />
           <ButtonGroup>
-            <Button type="button" onClick={onClose}>Cancel</Button>
-            <Button type="submit" $primary>Add Member</Button>
+            <Button type="button" className="cancel" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" className="add" disabled={!name.trim()}>
+              Add Member
+            </Button>
           </ButtonGroup>
         </form>
-      </DialogContent>
+      </DialogContainer>
     </DialogOverlay>
   );
-}
+};
 
 export default AddMemberDialog; 

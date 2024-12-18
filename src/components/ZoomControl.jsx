@@ -11,12 +11,6 @@ const Container = styled.div`
   border: 1px solid #ddd;
 `;
 
-const ZoomLabel = styled.span`
-  font-size: 12px;
-  color: #666;
-  min-width: 40px;
-`;
-
 const Slider = styled.input.attrs({ type: 'range' })`
   width: 100px;
   height: 4px;
@@ -44,19 +38,22 @@ const Slider = styled.input.attrs({ type: 'range' })`
   }
 `;
 
-function ZoomControl({ zoom, onZoomChange }) {
+const ZoomControl = ({ zoom = 1, onZoomChange }) => {
+  if (!onZoomChange) return null; // Safety check
+
   return (
     <Container>
-      <ZoomLabel>{Math.round(zoom * 100)}%</ZoomLabel>
       <Slider
+        type="range"
         min="0.5"
-        max="1.5"
+        max="2"
         step="0.1"
         value={zoom}
-        onChange={(e) => onZoomChange(parseFloat(e.target.value))}
+        onChange={(e) => onZoomChange(e.target.value)}
       />
+      <span>{Math.round(zoom * 100)}%</span>
     </Container>
   );
-}
+};
 
 export default ZoomControl; 
