@@ -232,3 +232,11 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - React Beautiful DnD for the drag and drop functionality
 - Styled Components for the styling system
+- Local Storage for the persistence layer
+- Vite for the build system
+- React for the UI framework
+- Docker for the containerization
+- Node.js for the runtime environment
+- npm for the package manager
+- git for the version control system
+   
